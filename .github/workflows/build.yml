@@ -1,0 +1,24 @@
+name: Build Swell Tape
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -A x64
+      - name: Build VST3 + Standalone
+        run: cmake --build build --config Release --parallel 3 --target SwellTape_VST3 SwellTape_Standalone
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path package/Windows -Force
+          Copy-Item -Recurse 'build/SwellTape_artefacts/Release/VST3/Swell Tape.vst3' package/Windows/
+          Copy-Item 'build/SwellTape_artefacts/Release/Standalone/Swell Tape.exe' package/Windows/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Swell-Tape-Windows
+          path: package/Windows
+          if-no-files-found: error
