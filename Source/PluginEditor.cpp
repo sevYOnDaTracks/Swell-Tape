@@ -40,6 +40,23 @@ void drawChevron (Graphics& g, Point<float> c, float size, int direction, Colour
     g.setColour (colour);
     g.strokePath (p, PathStrokeType (1.6f, PathStrokeType::curved, PathStrokeType::rounded));
 }
+void drawGear (Graphics& g, Rectangle<float> r, Colour c)
+{
+    const auto centre = r.getCentre();
+    const float outer = r.getWidth() * 0.5f;
+    Path teeth;
+    for (int i = 0; i < 8; ++i)
+    {
+        Path t;
+        t.addRoundedRectangle (-outer * 0.16f, -outer, outer * 0.32f, outer * 0.5f, 1.2f);
+        teeth.addPath (t, AffineTransform::rotation (MathConstants<float>::twoPi * (float) i / 8.0f).translated (centre));
+    }
+    g.setColour (c);
+    g.fillPath (teeth);
+    g.drawEllipse (Rectangle<float> (outer * 1.3f, outer * 1.3f).withCentre (centre), outer * 0.28f);
+}
+
+constexpr int sizePercents[] { 75, 100, 125, 150, 175 };
 } // namespace
 
 Font Fonts::ui (float height, bool bold) const
@@ -488,10 +505,7 @@ void Editor::paint (Graphics& g)
     g.drawText (pname, Rectangle<float> (pill.getCentreX() - (pw + 14.0f) * 0.5f, pill.getY(), pw + 2.0f, pill.getHeight()), Justification::centredLeft, false);
     drawChevron (g, { pill.getCentreX() + (pw + 14.0f) * 0.5f - 3.0f, pill.getCentreY() + 1.0f }, 3.5f, 2, colours::muted);
 
-    const auto dots = dotsBounds();
-    g.setColour (hover == 4 ? colours::accent : colours::cream);
-    for (int i = -1; i <= 1; ++i)
-        g.fillEllipse (Rectangle<float> (4.5f, 4.5f).withCentre ({ dots.getCentreX() + (float) i * 7.5f, dots.getCentreY() }));
+    drawGear (g, dotsBounds().withSizeKeepingCentre (20.0f, 20.0f), hover == 4 ? colours::cream : colours::cream.withAlpha (0.75f));
 
     // libellés et valeurs des potards
     for (auto& k : knobs)
@@ -570,12 +584,22 @@ void Editor::showMoreMenu()
 {
     PopupMenu menu;
     menu.setLookAndFeel (&look);
+    PopupMenu sizes;
+    const int current = roundToInt (100.0f * (float) getWidth() / (float) W);
+    for (int p : sizePercents)
+        sizes.addItem (100 + p, String (p) + " %", true, std::abs (current - p) <= 2);
+    menu.addSubMenu (String::fromUTF8 ("Taille de la fenêtre"), sizes);
+    menu.addSeparator();
     menu.addItem (1, CharPointer_UTF8 ("\xc3\x80 propos de Swell Tape"));
     menu.addItem (2, "swell-audio.fr");
+    menu.addSeparator();
+    menu.addItem (99, "Swell Tape " SWELL_VERSION, false);
     menu.showMenuAsync (PopupMenu::Options().withTargetComponent (this).withTargetScreenArea (localAreaToGlobal (toScreen (dotsBounds()))),
-                        [] (int r)
+                        [safe = Component::SafePointer<Editor> (this)] (int r)
     {
-        if (r == 1)
+        if (r > 100 && safe != nullptr)
+            safe->setSize (W * (r - 100) / 100, H * (r - 100) / 100);
+        else if (r == 1)
             AlertWindow::showMessageBoxAsync (MessageBoxIconType::NoIcon, "Swell Tape " SWELL_VERSION,
                 String (CharPointer_UTF8 ("Bande studio et cassette lo-fi, de Swell Audio.\n\n"
                                           "Photo des bobines et de la platine : \xc2\xab Studer B67 reel-to-reel audio tape recorder \xc2\xbb, "
