@@ -333,6 +333,24 @@ int main (int argc, char** argv)
     }
 
     {
+        std::printf ("Taille d'ouverture\n");
+        {
+            Processor p; // nouvelle instance, sans état sauvegardé
+            std::unique_ptr<AudioProcessorEditor> ed (p.createEditor());
+            check (ed->getWidth() == 960 && ed->getHeight() == 660,
+                   u ("nouvelle instance ouverte à 100 % (") + String (ed->getWidth()) + "x" + String (ed->getHeight()) + ")");
+        }
+        {
+            Processor a;
+            { std::unique_ptr<AudioProcessorEditor> ed (a.createEditor()); ed->setSize (1200, 825); }
+            MemoryBlock state; a.getStateInformation (state);
+            Processor b; b.setStateInformation (state.getData(), (int) state.getSize());
+            std::unique_ptr<AudioProcessorEditor> ed (b.createEditor());
+            check (ed->getWidth() == 1200, u ("taille sauvegardée conservée (") + String (ed->getWidth()) + "x" + String (ed->getHeight()) + ")");
+        }
+    }
+
+    {
         std::printf ("Captures\n");
         struct Shot { int preset; bool more, stop; const char* name; int width = 960; };
         for (auto s : { Shot { 0, false, false, "ui-studio.png" }, Shot { 5, false, false, "ui-demo-1987.png" },

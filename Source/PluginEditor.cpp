@@ -427,10 +427,13 @@ Editor::Editor (Processor& p)
     addAndMakeVisible (badge);
 
     // Fenêtre redimensionnable, proportions gardées ; la taille choisie est retenue avec le projet.
+    // On lit la largeur retenue AVANT setResizeLimits : celui-ci recadre l'éditeur encore à 0×0 sur
+    // la taille minimale, et resized() écraserait proc.editorWidth (ouverture à 60 % au lieu de 100 %).
+    const int savedWidth = proc.editorWidth;
     setResizable (true, true);
     setResizeLimits (roundToInt (W * 0.6), roundToInt (H * 0.6), roundToInt (W * 1.8), roundToInt (H * 1.8));
     if (auto* c = getConstrainer()) c->setFixedAspectRatio ((double) W / (double) H);
-    const int w = jlimit (roundToInt (W * 0.6), roundToInt (W * 1.8), proc.editorWidth);
+    const int w = jlimit (roundToInt (W * 0.6), roundToInt (W * 1.8), savedWidth);
     setSize (w, roundToInt (w * (double) H / W));
     startTimerHz (15);
 }
