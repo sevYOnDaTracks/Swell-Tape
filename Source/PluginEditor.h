@@ -91,7 +91,9 @@ private:
         std::unique_ptr<juce::Slider> slider;
         std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
     };
-    void timerCallback() override { repaint (0, 380, getWidth(), getHeight() - 380); }
+    void timerCallback() override { repaint (toScreen ({ 0.0f, 380.0f, 960.0f, 280.0f })); }
+    // L'interface est dessinée en 960 x 660 puis mise à l'échelle de la fenêtre.
+    juce::Rectangle<int> toScreen (juce::Rectangle<float> r) const { return (r * scale).getSmallestIntegerContainer(); }
     juce::String valueText (const Knob&) const;
     void showPresetMenu();
     void showMoreMenu();
@@ -111,6 +113,7 @@ private:
     juce::ParameterAttachment stopAttachment;
     swell::LicenceBadge badge;
     bool moreOpen = false;
+    float scale = 1.0f;
     int hover = 0; // 1 = flèche gauche, 2 = pastille, 3 = flèche droite, 4 = ••• , 5 = Plus
 };
 } // namespace swelltape

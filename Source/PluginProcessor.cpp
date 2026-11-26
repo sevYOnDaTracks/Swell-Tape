@@ -109,6 +109,7 @@ void Processor::getStateInformation (MemoryBlock& dest)
 {
     auto state = params.copyState();
     state.setProperty ("preset", currentPreset, nullptr);
+    state.setProperty ("uiWidth", editorWidth, nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary (*xml, dest);
 }
 
@@ -119,6 +120,7 @@ void Processor::setStateInformation (const void* data, int size)
         {
             auto tree = ValueTree::fromXml (*xml);
             currentPreset = jlimit (0, getNumPrograms() - 1, (int) tree.getProperty ("preset", 0));
+            editorWidth = (int) tree.getProperty ("uiWidth", 960);
             params.replaceState (tree);
             if (auto* stop = params.getParameter ("stop")) stop->setValueNotifyingHost (0.0f); // jamais rechargé à l'arrêt
         }

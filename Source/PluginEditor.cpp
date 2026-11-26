@@ -394,7 +394,7 @@ Editor::Editor (Processor& p)
         k.slider->setMouseDragSensitivity (220);
         k.slider->setVelocityBasedMode (false);
         if (String (id) == "tone") k.slider->getProperties().set ("bipolar", true);
-        k.slider->onValueChange = [this] { repaint (0, 400, W, 220); };
+        k.slider->onValueChange = [this] { repaint (toScreen ({ 0.0f, 400.0f, (float) W, 220.0f })); };
         addAndMakeVisible (*k.slider);
         k.attachment = std::make_unique<AudioProcessorValueTreeState::SliderAttachment> (proc.params, id, *k.slider);
         if (auto* prm = proc.params.getParameter (id))
@@ -409,7 +409,12 @@ Editor::Editor (Processor& p)
     stopAttachment.sendInitialUpdate();
     addAndMakeVisible (badge);
 
-    setSize (W, H);
+    // Fenêtre redimensionnable, proportions gardées ; la taille choisie est retenue avec le projet.
+    setResizable (true, true);
+    setResizeLimits (roundToInt (W * 0.6), roundToInt (H * 0.6), roundToInt (W * 1.8), roundToInt (H * 1.8));
+    if (auto* c = getConstrainer()) c->setFixedAspectRatio ((double) W / (double) H);
+    const int w = jlimit (roundToInt (W * 0.6), roundToInt (W * 1.8), proc.editorWidth);
+    setSize (w, roundToInt (w * (double) H / W));
     startTimerHz (15);
 }
 
@@ -417,6 +422,8 @@ Editor::~Editor() { setLookAndFeel (nullptr); }
 
 void Editor::resized()
 {
+    scale = (float) getWidth() / (float) W;
+    proc.editorWidth = getWidth();
     deck.setBounds (heroArea);
 
     // rangée de potards : comme la maquette, répartis sur 792 px, alignés en bas
@@ -437,6 +444,12 @@ void Editor::resized()
     }
     stopButton.setBounds (x - 8, 618, 150, 28);
     badge.setBounds (W - 28 - 260, 620, 260, 24);
+
+    const auto t = AffineTransform::scale (scale);
+    for (auto* c : std::initializer_list<Component*> { &deck, &hiss, &speed, &output, &stopButton, &badge })
+        c->setTransform (t);
+    for (auto& k : knobs)
+        k.slider->setTransform (t);
 }
 
 String Editor::valueText (const Knob& k) const
@@ -450,6 +463,7 @@ String Editor::valueText (const Knob& k) const
 void Editor::paint (Graphics& g)
 {
     g.fillAll (colours::background);
+    g.addTransform (AffineTransform::scale (scale));
 
     // en-tête
     if (logo.isValid())
@@ -503,7 +517,7 @@ void Editor::paint (Graphics& g)
 
 void Editor::mouseMove (const MouseEvent& e)
 {
-    const auto p = e.position;
+    const auto p = e.position / scale;
     const auto pill = pillBounds();
     int h = 0;
     if (pill.contains (p)) h = p.x < pill.getX() + 44.0f ? 1 : p.x > pill.getRight() - 44.0f ? 3 : 2;
@@ -547,7 +561,7 @@ void Editor::showPresetMenu()
     menu.setLookAndFeel (&look);
     for (int i = 0; i < proc.getNumPrograms(); ++i)
         menu.addItem (i + 1, proc.getProgramName (i), true, i == proc.getCurrentProgram());
-    const auto pill = pillBounds().toNearestInt();
+    const auto pill = toScreen (pillBounds());
     menu.showMenuAsync (PopupMenu::Options().withTargetComponent (this).withTargetScreenArea (localAreaToGlobal (pill)).withMinimumWidth (pill.getWidth()),
                         [this] (int r) { if (r > 0) { proc.setCurrentProgram (r - 1); repaint(); } });
 }
@@ -558,7 +572,7 @@ void Editor::showMoreMenu()
     menu.setLookAndFeel (&look);
     menu.addItem (1, CharPointer_UTF8 ("\xc3\x80 propos de Swell Tape"));
     menu.addItem (2, "swell-audio.fr");
-    menu.showMenuAsync (PopupMenu::Options().withTargetComponent (this).withTargetScreenArea (localAreaToGlobal (dotsBounds().toNearestInt())),
+    menu.showMenuAsync (PopupMenu::Options().withTargetComponent (this).withTargetScreenArea (localAreaToGlobal (toScreen (dotsBounds()))),
                         [] (int r)
     {
         if (r == 1)

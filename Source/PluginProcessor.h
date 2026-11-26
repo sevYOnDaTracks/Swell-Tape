@@ -47,6 +47,7 @@ public:
     float transportSpeed() const noexcept { return engine.transportSpeed(); }
     bool audioIsRunning() const noexcept { return juce::Time::getMillisecondCounter() - lastBlockMs.load() < 250u; }
     Settings currentSettings() const;
+    int editorWidth = 960; // taille de fenêtre retenue avec le projet
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout layout();

@@ -90,3 +90,12 @@ if(SWELL_BUILD_TESTS)
         PRIVATE monocypher juce::juce_cryptography juce::juce_audio_utils juce::juce_dsp SwellTapeAssets
             juce::juce_recommended_config_flags)
 endif()
+
+# Vérification du composant AU installé, chargé comme dans un hôte
+option(SWELL_BUILD_AUHOST "Build AU host check" OFF)
+if(SWELL_BUILD_AUHOST AND APPLE)
+    juce_add_console_app(AuHostCheck PRODUCT_NAME "AuHostCheck")
+    target_sources(AuHostCheck PRIVATE Tests/AuHostCheck.cpp)
+    target_compile_definitions(AuHostCheck PRIVATE JUCE_PLUGINHOST_AU=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(AuHostCheck PRIVATE juce::juce_audio_processors juce::juce_audio_utils juce::juce_recommended_config_flags)
+endif()

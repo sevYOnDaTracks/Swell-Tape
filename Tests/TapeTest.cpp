@@ -334,16 +334,18 @@ int main (int argc, char** argv)
 
     {
         std::printf ("Captures\n");
-        struct Shot { int preset; bool more, stop; const char* name; };
+        struct Shot { int preset; bool more, stop; const char* name; int width = 960; };
         for (auto s : { Shot { 0, false, false, "ui-studio.png" }, Shot { 5, false, false, "ui-demo-1987.png" },
-                        Shot { 6, true, false, "ui-cassette-plus.png" }, Shot { 2, true, true, "ui-arret.png" } })
+                        Shot { 6, true, false, "ui-cassette-plus.png" }, Shot { 2, true, true, "ui-arret.png" }, Shot { 4, true, false, "ui-grand.png", 1440 }, Shot { 1, false, false, "ui-petit.png", 600 } })
         {
             Processor p;
             p.setCurrentProgram (s.preset);
             setParam (p, "stop", s.stop ? 1.0f : 0.0f);
             std::unique_ptr<AudioProcessorEditor> ed (p.createEditor());
             if (auto* e = dynamic_cast<swelltape::Editor*> (ed.get())) e->setMoreOpen (s.more);
-            auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 2.0f);
+            ed->setSize (s.width, s.width * 660 / 960);
+            check (ed->getWidth() == s.width, u ("taille de fenêtre ") + String (ed->getWidth()) + "x" + String (ed->getHeight()));
+            auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, s.width > 1000 ? 1.0f : 2.0f);
             auto f = outDir.getChildFile (s.name);
             f.deleteFile();
             PNGImageFormat png;
